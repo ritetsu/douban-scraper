@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import csv
 import json
 import os
 import time
@@ -274,6 +275,70 @@ def export(
 
     if all_failures:
         raise typer.Exit(code=2)
+
+
+CSV_COLUMNS = ["title", "type", "my_rating", "comment", "create_time", "year", "genres", "douban_rating", "card_subtitle", "url", "tags"]
+
+
+@app.command(name="to-csv")
+def to_csv(
+    input_dir: str = typer.Option(..., "--input", "-i", help="Directory containing JSON output files"),
+) -> None:
+    """Convert exported JSON files to a single CSV."""
+    input_path = Path(input_dir)
+    if not input_path.is_dir():
+        console.print(f"[red]Error:[/red] Directory not found: {input_dir}")
+        raise typer.Exit(code=1)
+
+    all_items: list[dict] = []
+    for filename in ["movies.json", "books.json"]:
+        filepath = input_path / filename
+        if not filepath.exists():
+            console.print(f"[yellow]Skipping:[/yellow] {filename} not found")
+            continue
+        with open(filepath, "r", encoding="utf-8") as f:
+            items = json.load(f)
+        if not items:
+            console.print(f"[dim]Skipping {filename} (0 items)[/dim]")
+            continue
+        all_items.extend(items)
+
+    if not all_items:
+        console.print("[red]Error:[/red] No data found. Run `douban-scraper export` first.")
+        raise typer.Exit(code=1)
+
+    rows: list[dict] = []
+    for item in all_items:
+        subject = item.get("subject", {})
+        rating = item.get("rating") or {}
+        row = {
+            "title": subject.get("title", ""),
+            "type": subject.get("type", ""),
+            "my_rating": rating.get("value", ""),
+            "comment": item.get("comment", ""),
+            "create_time": item.get("create_time", ""),
+            "year": subject.get("year", "") or "",
+            "genres": ", ".join(subject.get("genres", [])),
+            "douban_rating": subject.get("rating", {}).get("value", ""),
+            "card_subtitle": subject.get("card_subtitle", ""),
+            "url": subject.get("url", ""),
+            "tags": ", ".join(item.get("tags", [])),
+        }
+        if row["my_rating"] != "":
+            row["my_rating"] = str(row["my_rating"])
+        if row["douban_rating"] != "":
+            row["douban_rating"] = str(row["douban_rating"])
+        rows.append(row)
+
+    rows.sort(key=lambda r: r["create_time"], reverse=True)
+
+    output_path = input_path / "douban_export.csv"
+    with open(output_path, "w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=CSV_COLUMNS)
+        writer.writeheader()
+        writer.writerows(rows)
+
+    console.print(f"Wrote [green]{len(rows)}[/green] rows to [cyan]{output_path}[/cyan]")
 
 
 if __name__ == "__main__":
