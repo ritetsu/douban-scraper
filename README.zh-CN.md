@@ -18,7 +18,7 @@
 ## 安装
 
 ```bash
-git clone https://github.com/ritetsu/douban-scraper.git
+git clone https://github.com/lizh3/douban-scraper.git
 cd douban-scraper
 pip install -e .
 ```
