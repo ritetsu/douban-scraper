@@ -1,5 +1,7 @@
 # douban-scraper
 
+🇨🇳 [简体中文](README.zh-CN.md)
+
 [![Python](https://img.shields.io/badge/python-%E2%89%A53.10-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
